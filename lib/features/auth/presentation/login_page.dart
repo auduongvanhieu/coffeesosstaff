@@ -55,7 +55,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Center(child: BrandLogo(size: 60)),
+            Center(
+              child: BrandLogo(
+                size: 60,
+                url: ref.watch(deviceContextProvider)?.brandLogoUrl,
+              ),
+            ),
             const SizedBox(height: 16),
             Text(
               AppConfig.appName,

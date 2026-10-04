@@ -23,6 +23,7 @@ class BrandLogo extends StatelessWidget {
           ? null
           : Image.network(
               url!,
+              webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => const SizedBox.shrink(),
             ),
@@ -56,6 +57,45 @@ class AuthCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Rounded product photo with the beige placeholder used across the POS.
+class ItemThumb extends StatelessWidget {
+  const ItemThumb({
+    super.key,
+    required this.url,
+    this.size = 44,
+    this.radius = 10,
+  });
+
+  final String? url;
+  final double size;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.beige,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+      child: url == null || url!.isEmpty
+          ? Icon(
+              Icons.local_cafe_outlined,
+              size: size * 0.45,
+              color: AppColors.primary.withValues(alpha: 0.5),
+            )
+          : Image.network(
+              url!,
+              webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => const SizedBox.shrink(),
+            ),
     );
   }
 }

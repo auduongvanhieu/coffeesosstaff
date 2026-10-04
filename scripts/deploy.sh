@@ -21,6 +21,16 @@ flutter build web --release \
   --base-href "$BASE_HREF" \
   --dart-define=API_BASE_URL="$API_BASE_URL" \
   --dart-define=WS_URL="$WS_URL"
+# Flutter does not content-hash the tree-shaken icon font, and Cloudflare caches
+# fonts at the edge, so a redeploy with new icons would keep serving the old
+# glyph set. Give the font a hash-suffixed name and point FontManifest.json at it.
+FONT=build/web/assets/fonts/MaterialIcons-Regular.otf
+if [ -f "$FONT" ]; then
+  HASH=$(md5 -q "$FONT" | cut -c1-8)
+  mv "$FONT" "build/web/assets/fonts/MaterialIcons-Regular.$HASH.otf"
+  sed -i '' "s#fonts/MaterialIcons-Regular.otf#fonts/MaterialIcons-Regular.$HASH.otf#g" build/web/assets/FontManifest.json
+  echo "==> icon font -> MaterialIcons-Regular.$HASH.otf"
+fi
 echo "==> publishing build/web/ -> $HOST:$DIR"
 ssh "$HOST" "mkdir -p '$DIR'"
 rsync -az --delete build/web/ "$HOST:$DIR/"

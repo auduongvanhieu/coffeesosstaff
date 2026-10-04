@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/brand_logo.dart';
 import '../../../../core/utils/money.dart';
 import '../../application/cart_controller.dart';
 import '../../domain/cart.dart';
@@ -123,6 +124,8 @@ class CartLineTile extends ConsumerWidget {
                 ),
               ),
             ),
+            const SizedBox(width: 8),
+            ItemThumb(url: line.item.imageUrl, size: 36, radius: 8),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -178,9 +181,11 @@ class CartLineCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: () => editCartLine(context, ref, line),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           child: Row(
             children: [
+              ItemThumb(url: line.item.imageUrl, size: 52, radius: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -166,6 +166,7 @@ class _Row extends StatelessWidget {
                 ? null
                 : Image.network(
                     item.imageUrl!,
+                    webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => const SizedBox(),
                   ),

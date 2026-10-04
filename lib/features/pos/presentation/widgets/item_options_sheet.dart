@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/brand_logo.dart';
 import '../../../../core/utils/money.dart';
 import '../../domain/cart.dart';
 import '../../domain/menu.dart';
@@ -137,6 +138,8 @@ class _OptionsSheetState extends State<_OptionsSheet> {
           children: [
             Row(
               children: [
+                ItemThumb(url: widget.item.imageUrl, size: 56, radius: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     widget.item.name,
