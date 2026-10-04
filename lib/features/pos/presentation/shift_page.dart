@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -7,7 +8,9 @@ import '../../../core/network/api_client.dart';
 import '../../../core/storage/device_context.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/money.dart';
+import '../../../core/widgets/brand_logo.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../auth/domain/user.dart';
 import '../data/order_repository.dart';
 import '../domain/order.dart';
 
@@ -31,6 +34,10 @@ class ShiftPage extends ConsumerWidget {
           children: [
             Row(
               children: [
+                if (user != null) ...[
+                  _AvatarButton(user: user),
+                  const SizedBox(width: 12),
+                ],
                 const Text(
                   'Kết ca',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
@@ -227,6 +234,95 @@ class _Section extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Staff photo on the shift screen; tap to pick a new one from the device.
+class _AvatarButton extends ConsumerStatefulWidget {
+  const _AvatarButton({required this.user});
+
+  final StaffUser user;
+
+  @override
+  ConsumerState<_AvatarButton> createState() => _AvatarButtonState();
+}
+
+class _AvatarButtonState extends ConsumerState<_AvatarButton> {
+  bool _busy = false;
+
+  Future<void> _pick() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 85,
+    );
+    if (picked == null) return;
+    setState(() => _busy = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      await ref
+          .read(authControllerProvider.notifier)
+          .uploadAvatar(bytes, picked.name);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã cập nhật ảnh đại diện')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(describeError(e))));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Đổi ảnh đại diện',
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: _busy ? null : _pick,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            StaffAvatar(
+              initials: widget.user.initials,
+              url: widget.user.avatarUrl,
+              size: 44,
+            ),
+            Positioned(
+              right: -2,
+              bottom: -2,
+              child: Container(
+                width: 18,
+                height: 18,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: _busy
+                    ? const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.photo_camera_rounded,
+                        size: 11,
+                        color: Colors.white,
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart' show FormData, MultipartFile;
+
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/user.dart';
@@ -47,6 +51,18 @@ class AuthRepository {
       await _tokens.clear();
       return null;
     }
+  }
+
+  /// POST /pos/me/avatar — the staff member's own profile photo.
+  Future<StaffUser> uploadAvatar(Uint8List bytes, String filename) async {
+    final form = FormData.fromMap({
+      'file': MultipartFile.fromBytes(bytes, filename: filename),
+    });
+    final res = await _api.dio.post<Map<String, dynamic>>(
+      '/pos/me/avatar',
+      data: form,
+    );
+    return StaffUser.fromJson(res.data!);
   }
 
   Future<void> logout() => _tokens.clear();

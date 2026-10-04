@@ -8,6 +8,7 @@ class StaffUser {
     required this.level,
     required this.email,
     required this.fullName,
+    this.avatarUrl,
     this.brandName,
     this.brandLogoUrl,
     this.storeName,
@@ -20,6 +21,21 @@ class StaffUser {
   final int level;
   final String? email;
   final String fullName;
+  final String? avatarUrl;
+
+  /// "Nhân viên Quận 3" → "NQ"; used when there is no photo yet.
+  String get initials {
+    final parts = fullName
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+        .toUpperCase();
+  }
+
   final String? brandName;
   final String? brandLogoUrl;
   final String? storeName;
@@ -32,6 +48,7 @@ class StaffUser {
     level: (json['level'] as num).toInt(),
     email: json['email'] as String?,
     fullName: json['fullName'] as String? ?? '',
+    avatarUrl: json['avatarUrl'] as String?,
     brandName: json['brandName'] as String?,
     brandLogoUrl: json['brandLogoUrl'] as String?,
     storeName: json['storeName'] as String?,

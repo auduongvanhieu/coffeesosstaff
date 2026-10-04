@@ -39,7 +39,7 @@ flutter build ipa --release
 | `/payment/:orderId` | 03 Thanh toán: Tiền mặt / VietQR / MoMo / ZaloPay, tiền thừa, mã VietQR thật | M4 |
 | `/app-orders` | 04 Đơn từ app: Chờ xác nhận / Đang pha / Sẵn sàng / Hôm nay, cập nhật realtime qua WebSocket | M5 |
 | `/sold-out` | Hết món: bật tắt món ở cấp cửa hàng | như tablet |
-| `/shift` | Kết ca: doanh thu, số đơn theo phương thức/nguồn, đăng xuất | như tablet |
+| `/shift` | Kết ca: avatar nhân viên (bấm để đổi ảnh), doanh thu, số đơn theo phương thức/nguồn, đăng xuất | như tablet |
 
 Luồng đơn: chọn món (sheet chọn size/đá/đường/topping, ghi chú) → gắn khách tích điểm theo SĐT →
 mã giảm giá → **Lưu đơn** (giữ đơn, chưa thu tiền) hoặc **Thanh toán** → xác nhận → đơn chuyển "Đang pha".

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
@@ -61,6 +63,14 @@ class AuthController extends AsyncNotifier<StaffUser?> {
             brandLogoUrl: user.brandLogoUrl,
           ),
         );
+  }
+
+  /// Uploads a new profile photo and refreshes the session user.
+  Future<void> uploadAvatar(Uint8List bytes, String filename) async {
+    final user = await ref
+        .read(authRepositoryProvider)
+        .uploadAvatar(bytes, filename);
+    state = AsyncData(user);
   }
 
   /// Clears a failed login so the error does not stick to the next screen.

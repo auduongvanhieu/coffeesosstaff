@@ -7,6 +7,7 @@ import '../../../core/layout/breakpoints.dart';
 import '../../../core/storage/device_context.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/brand_logo.dart';
+import '../../auth/application/auth_controller.dart';
 import '../application/app_orders_controller.dart';
 
 class _Destination {
@@ -61,7 +62,7 @@ class PosShell extends ConsumerWidget {
   }
 }
 
-class _Rail extends StatelessWidget {
+class _Rail extends ConsumerWidget {
   const _Rail({required this.index, required this.pending, this.logoUrl});
 
   final int index;
@@ -69,7 +70,8 @@ class _Rail extends StatelessWidget {
   final String? logoUrl;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authControllerProvider).value;
     return Container(
       width: 72,
       color: AppColors.surface,
@@ -86,6 +88,20 @@ class _Rail extends StatelessWidget {
             ),
             const SizedBox(height: 14),
           ],
+          const Spacer(),
+          if (user != null)
+            Tooltip(
+              message: user.fullName,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => context.go(Routes.shift),
+                child: StaffAvatar(
+                  initials: user.initials,
+                  url: user.avatarUrl,
+                  size: 40,
+                ),
+              ),
+            ),
         ],
       ),
     );

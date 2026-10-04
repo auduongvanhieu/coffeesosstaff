@@ -99,3 +99,53 @@ class ItemThumb extends StatelessWidget {
     );
   }
 }
+
+/// Round staff photo; falls back to initials on teal so every account has a face.
+class StaffAvatar extends StatelessWidget {
+  const StaffAvatar({
+    super.key,
+    required this.initials,
+    this.url,
+    this.size = 36,
+  });
+
+  final String initials;
+  final String? url;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        color: AppColors.success,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: url == null || url!.isEmpty
+          ? Text(
+              initials,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: size * 0.38,
+              ),
+            )
+          : Image.network(
+              url!,
+              fit: BoxFit.cover,
+              webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
+              errorBuilder: (_, _, _) => Text(
+                initials,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: size * 0.38,
+                ),
+              ),
+            ),
+    );
+  }
+}
