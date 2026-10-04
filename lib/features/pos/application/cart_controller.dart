@@ -1,0 +1,127 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../data/order_repository.dart';
+import '../domain/cart.dart';
+import '../domain/menu.dart';
+import '../domain/order.dart';
+
+/// The order being built on this terminal. Pure local state; prices are
+/// recomputed by the server when the order is created.
+class CartController extends Notifier<CartState> {
+  int _seq = 0;
+
+  @override
+  CartState build() => const CartState();
+
+  void addLine(
+    MenuItem item, {
+    List<SelectedChoice> choices = const [],
+    int quantity = 1,
+    String? note,
+  }) {
+    final candidate = CartLine(
+      uid: '',
+      item: item,
+      quantity: quantity,
+      choices: choices,
+      note: note,
+    );
+    final existing = state.lines.indexWhere(
+      (l) => l.signature == candidate.signature,
+    );
+    if (existing >= 0) {
+      final lines = [...state.lines];
+      lines[existing] = lines[existing].copyWith(
+        quantity: lines[existing].quantity + quantity,
+      );
+      state = state.copyWith(lines: lines);
+      return;
+    }
+    final line = CartLine(
+      uid: 'l${++_seq}',
+      item: item,
+      quantity: quantity,
+      choices: choices,
+      note: note,
+    );
+    state = state.copyWith(lines: [...state.lines, line]);
+  }
+
+  void setQuantity(String uid, int quantity) {
+    if (quantity <= 0) {
+      removeLine(uid);
+      return;
+    }
+    state = state.copyWith(
+      lines: [
+        for (final l in state.lines)
+          l.uid == uid ? l.copyWith(quantity: quantity) : l,
+      ],
+    );
+  }
+
+  void increment(String uid) {
+    final l = state.lines.firstWhere((l) => l.uid == uid);
+    setQuantity(uid, l.quantity + 1);
+  }
+
+  void decrement(String uid) {
+    final l = state.lines.firstWhere((l) => l.uid == uid);
+    setQuantity(uid, l.quantity - 1);
+  }
+
+  void updateLine(
+    String uid, {
+    List<SelectedChoice>? choices,
+    int? quantity,
+    String? note,
+  }) {
+    state = state.copyWith(
+      lines: [
+        for (final l in state.lines)
+          l.uid == uid
+              ? l.copyWith(choices: choices, quantity: quantity, note: note)
+              : l,
+      ],
+    );
+  }
+
+  void removeLine(String uid) {
+    state = state.copyWith(
+      lines: state.lines.where((l) => l.uid != uid).toList(),
+    );
+  }
+
+  void setTable(String label) =>
+      state = state.copyWith(tableLabel: label, orderType: 'dine_in');
+
+  void setOrderType(String type) => state = state.copyWith(orderType: type);
+
+  void setCustomer(Customer? c) => state = c == null
+      ? state.copyWith(clearCustomer: true)
+      : state.copyWith(customer: c);
+
+  void setPromotion(Promotion? p) => state = p == null
+      ? state.copyWith(clearPromotion: true)
+      : state.copyWith(promotion: p);
+
+  void setNote(String? note) => state = state.copyWith(note: note);
+
+  void clear() => state = CartState(tableLabel: state.tableLabel);
+
+  /// Sends the cart to the server as an open order (or replaces the lines of
+  /// the order already created for this cart). Returns the priced order.
+  Future<Order> submit() async {
+    final repo = ref.read(orderRepositoryProvider);
+    final input = state.toInput();
+    final order = state.orderId == null
+        ? await repo.create(input)
+        : await repo.replace(state.orderId!, input);
+    state = state.copyWith(orderId: order.id);
+    return order;
+  }
+}
+
+final cartProvider = NotifierProvider<CartController, CartState>(
+  CartController.new,
+);

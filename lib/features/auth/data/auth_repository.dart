@@ -9,10 +9,27 @@ class AuthRepository {
   final TokenStorage _tokens;
 
   /// POST /auth/login — shared by staff, managers and owners.
-  Future<StaffUser> login({required String email, required String password}) async {
+  Future<StaffUser> login({
+    required String email,
+    required String password,
+  }) async {
     final res = await _api.dio.post<Map<String, dynamic>>(
       '/auth/login',
       data: {'email': email, 'password': password},
+    );
+    final result = LoginResult.fromJson(res.data!);
+    await _tokens.write(result.accessToken);
+    return result.user;
+  }
+
+  /// POST /auth/pin-login — staff on a terminal already bound to a store.
+  Future<StaffUser> pinLogin({
+    required String storeId,
+    required String pin,
+  }) async {
+    final res = await _api.dio.post<Map<String, dynamic>>(
+      '/auth/pin-login',
+      data: {'storeId': storeId, 'pin': pin},
     );
     final result = LoginResult.fromJson(res.data!);
     await _tokens.write(result.accessToken);

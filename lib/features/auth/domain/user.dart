@@ -8,6 +8,9 @@ class StaffUser {
     required this.level,
     required this.email,
     required this.fullName,
+    this.brandName,
+    this.brandLogoUrl,
+    this.storeName,
   });
 
   final String id;
@@ -17,28 +20,38 @@ class StaffUser {
   final int level;
   final String? email;
   final String fullName;
+  final String? brandName;
+  final String? brandLogoUrl;
+  final String? storeName;
 
   factory StaffUser.fromJson(Map<String, dynamic> json) => StaffUser(
-        id: json['id'] as String,
-        brandId: json['brandId'] as String?,
-        storeId: json['storeId'] as String?,
-        role: json['role'] as String,
-        level: (json['level'] as num).toInt(),
-        email: json['email'] as String?,
-        fullName: json['fullName'] as String? ?? '',
-      );
+    id: json['id'] as String,
+    brandId: json['brandId'] as String?,
+    storeId: json['storeId'] as String?,
+    role: json['role'] as String,
+    level: (json['level'] as num).toInt(),
+    email: json['email'] as String?,
+    fullName: json['fullName'] as String? ?? '',
+    brandName: json['brandName'] as String?,
+    brandLogoUrl: json['brandLogoUrl'] as String?,
+    storeName: json['storeName'] as String?,
+  );
 }
 
 class LoginResult {
-  const LoginResult({required this.accessToken, required this.expiresAt, required this.user});
+  const LoginResult({
+    required this.accessToken,
+    required this.expiresAt,
+    required this.user,
+  });
 
   final String accessToken;
   final DateTime expiresAt;
   final StaffUser user;
 
   factory LoginResult.fromJson(Map<String, dynamic> json) => LoginResult(
-        accessToken: json['accessToken'] as String,
-        expiresAt: DateTime.parse(json['expiresAt'] as String),
-        user: StaffUser.fromJson(json['user'] as Map<String, dynamic>),
-      );
+    accessToken: json['accessToken'] as String,
+    expiresAt: DateTime.parse(json['expiresAt'] as String),
+    user: StaffUser.fromJson(json['user'] as Map<String, dynamic>),
+  );
 }

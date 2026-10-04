@@ -17,25 +17,30 @@ class ApiException implements Exception {
 
 class ApiClient {
   ApiClient(this._tokens, {Dio? dio})
-      : dio = dio ??
-            Dio(BaseOptions(
+    : dio =
+          dio ??
+          Dio(
+            BaseOptions(
               baseUrl: AppConfig.apiBaseUrl,
               connectTimeout: const Duration(seconds: 10),
               receiveTimeout: const Duration(seconds: 20),
               headers: {'Content-Type': 'application/json'},
-            )) {
-    this.dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await _tokens.read();
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        handler.next(options);
-      },
-      onError: (err, handler) {
-        handler.reject(_normalize(err));
-      },
-    ));
+            ),
+          ) {
+    this.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await _tokens.read();
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          handler.next(options);
+        },
+        onError: (err, handler) {
+          handler.reject(_normalize(err));
+        },
+      ),
+    );
   }
 
   final Dio dio;
@@ -55,26 +60,39 @@ class ApiClient {
       return err.copyWith(error: ApiException(status, code, message));
     }
     if (status != null) {
-      return err.copyWith(error: ApiException(status, 'http_$status', _fallbackMessage(status)));
+      return err.copyWith(
+        error: ApiException(status, 'http_$status', _fallbackMessage(status)),
+      );
     }
     return err.copyWith(
-      error: ApiException(null, 'network', 'Không kết nối được máy chủ, kiểm tra mạng và thử lại.'),
+      error: ApiException(
+        null,
+        'network',
+        'Không kết nối được máy chủ, kiểm tra mạng và thử lại.',
+      ),
     );
   }
 
   static String _fallbackMessage(int? status) => switch (status) {
-        401 => 'Phiên đăng nhập không hợp lệ.',
-        403 => 'Bạn không có quyền thực hiện thao tác này.',
-        404 => 'Không tìm thấy dữ liệu.',
-        _ when status != null && status >= 500 => 'Máy chủ gặp sự cố, vui lòng thử lại sau.',
-        _ => 'Yêu cầu không hợp lệ.',
-      };
+    401 => 'Phiên đăng nhập không hợp lệ.',
+    403 => 'Bạn không có quyền thực hiện thao tác này.',
+    404 => 'Không tìm thấy dữ liệu.',
+    _ when status != null && status >= 500 =>
+      'Máy chủ gặp sự cố, vui lòng thử lại sau.',
+    _ => 'Yêu cầu không hợp lệ.',
+  };
 }
 
 /// Vietnamese copy for well-known backend error codes; falls back to the
 /// server message for anything else.
 const _codeMessages = <String, String>{
   'invalid_credentials': 'Email hoặc mật khẩu không đúng.',
+  'invalid_pin': 'Mã PIN không đúng.',
+  'invalid_order': 'Đơn hàng không hợp lệ.',
+  'invalid_transition': 'Trạng thái đơn không cho phép thao tác này.',
+  'already_paid': 'Đơn này đã được thanh toán.',
+  'not_open': 'Đơn đã chốt, không sửa được.',
+  'store_required': 'Tài khoản chưa gắn với cửa hàng nào.',
   'unauthorized': 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.',
   'forbidden': 'Bạn không có quyền thực hiện thao tác này.',
   'not_found': 'Không tìm thấy dữ liệu.',
