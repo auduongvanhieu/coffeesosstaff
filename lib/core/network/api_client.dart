@@ -42,26 +42,54 @@ class ApiClient {
   final TokenStorage _tokens;
 
   DioException _normalize(DioException err) {
+    final status = err.response?.statusCode;
     final data = err.response?.data;
     if (data is Map<String, dynamic>) {
-      final code = data['code']?.toString() ?? 'error';
-      final message = data['message']?.toString() ?? err.message ?? 'Request failed';
-      return err.copyWith(
-        error: ApiException(err.response?.statusCode, code, message),
-      );
+      // Backend (httpx.Fail) wraps errors as {"error": {"code", "message"}};
+      // also accept a flat {"code", "message"} body.
+      final body = data['error'] is Map<String, dynamic>
+          ? data['error'] as Map<String, dynamic>
+          : data;
+      final code = body['code']?.toString() ?? 'error';
+      final message = body['message']?.toString() ?? _fallbackMessage(status);
+      return err.copyWith(error: ApiException(status, code, message));
+    }
+    if (status != null) {
+      return err.copyWith(error: ApiException(status, 'http_$status', _fallbackMessage(status)));
     }
     return err.copyWith(
-      error: ApiException(err.response?.statusCode, 'network', err.message ?? 'Network error'),
+      error: ApiException(null, 'network', 'Không kết nối được máy chủ, kiểm tra mạng và thử lại.'),
     );
   }
+
+  static String _fallbackMessage(int? status) => switch (status) {
+        401 => 'Phiên đăng nhập không hợp lệ.',
+        403 => 'Bạn không có quyền thực hiện thao tác này.',
+        404 => 'Không tìm thấy dữ liệu.',
+        _ when status != null && status >= 500 => 'Máy chủ gặp sự cố, vui lòng thử lại sau.',
+        _ => 'Yêu cầu không hợp lệ.',
+      };
 }
+
+/// Vietnamese copy for well-known backend error codes; falls back to the
+/// server message for anything else.
+const _codeMessages = <String, String>{
+  'invalid_credentials': 'Email hoặc mật khẩu không đúng.',
+  'unauthorized': 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.',
+  'forbidden': 'Bạn không có quyền thực hiện thao tác này.',
+  'not_found': 'Không tìm thấy dữ liệu.',
+  'conflict': 'Dữ liệu đã tồn tại.',
+  'internal': 'Máy chủ gặp sự cố, vui lòng thử lại sau.',
+};
 
 /// Unwraps the [ApiException] attached by [ApiClient] or falls back to a
 /// generic message. Use in controllers when surfacing errors to the UI.
 String describeError(Object error) {
-  if (error is DioException && error.error is ApiException) {
-    return (error.error as ApiException).message;
-  }
-  if (error is ApiException) return error.message;
-  return 'Có lỗi xảy ra, vui lòng thử lại.';
+  final api = switch (error) {
+    DioException(:final error) when error is ApiException => error,
+    ApiException() => error,
+    _ => null,
+  };
+  if (api == null) return 'Có lỗi xảy ra, vui lòng thử lại.';
+  return _codeMessages[api.code] ?? api.message;
 }
