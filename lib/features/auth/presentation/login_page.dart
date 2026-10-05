@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/storage/credential_storage.dart';
 import '../../../core/storage/device_context.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/brand_logo.dart';
@@ -24,6 +25,39 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
+  bool _remember = true;
+  bool _hadSaved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSaved();
+  }
+
+  /// Fills the form from the keychain so a shared terminal does not have to
+  /// retype the account every time.
+  Future<void> _loadSaved() async {
+    final saved = await ref.read(credentialStorageProvider).read();
+    if (saved == null || !mounted) return;
+    setState(() {
+      _email.text = saved.email;
+      _password.text = saved.password;
+      _hadSaved = true;
+    });
+  }
+
+  Future<void> _forget() async {
+    await ref.read(credentialStorageProvider).clear();
+    if (!mounted) return;
+    setState(() {
+      _email.clear();
+      _password.clear();
+      _remember = false;
+      _hadSaved = false;
+    });
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Đã xoá đăng nhập đã lưu')));
+  }
 
   @override
   void dispose() {
@@ -34,9 +68,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    await ref
-        .read(authControllerProvider.notifier)
-        .login(_email.text.trim(), _password.text);
+    final email = _email.text.trim();
+    final password = _password.text;
+    await ref.read(authControllerProvider.notifier).login(email, password);
+    if (!mounted) return;
+    // Only remember a login that actually worked.
+    final signedIn = ref.read(authControllerProvider).value != null;
+    if (!signedIn) return;
+    final store = ref.read(credentialStorageProvider);
+    await (_remember ? store.save(email, password) : store.clear());
   }
 
   @override
@@ -102,11 +142,36 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               validator: (v) =>
                   (v == null || v.length < 6) ? 'Tối thiểu 6 ký tự' : null,
             ),
+            const SizedBox(height: 6),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => setState(() => _remember = !_remember),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: _remember,
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      onChanged: (v) => setState(() => _remember = v ?? false),
+                    ),
+                    const SizedBox(width: 4),
+                    const Expanded(
+                      child: Text(
+                        'Ghi nhớ đăng nhập trên máy này',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             if (error != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
               Text(error, style: const TextStyle(color: AppColors.danger)),
             ],
-            const SizedBox(height: 22),
+            const SizedBox(height: 18),
             FilledButton(
               onPressed: isLoading ? null : _submit,
               child: isLoading
@@ -129,6 +194,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 child: const Text('Nhập mã PIN'),
               ),
             ],
+            if (_hadSaved)
+              TextButton(
+                onPressed: _forget,
+                child: const Text(
+                  'Xoá đăng nhập đã lưu',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
           ],
         ),
       ),

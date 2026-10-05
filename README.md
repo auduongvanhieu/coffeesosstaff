@@ -32,7 +32,7 @@ flutter build ipa --release
 
 | Route | Tablet | Điện thoại |
 |---|---|---|
-| `/login` | Đăng nhập email lần đầu để gắn máy với cửa hàng | như tablet |
+| `/login` | Đăng nhập email lần đầu để gắn máy với cửa hàng; ô **Ghi nhớ đăng nhập** lưu email + mật khẩu vào keychain của máy để lần sau điền sẵn | như tablet |
 | `/pin` | 01 Đăng nhập: bàn phím PIN 4 số (demo `1234`) | M1 |
 | `/` | 02 Order chính: rail trái, tìm món, Bàn/Mang đi, danh mục, lưới 4 cột, panel Đơn hàng | M2: lưới 2 cột + thanh "n món · tổng · Xem đơn" |
 | `/tables` | Sơ đồ bàn: bàn trống / đang phục vụ / đã thanh toán theo khu, số bàn có khách, tiền chưa thu; cập nhật realtime | như tablet, lưới 3 cột |
@@ -69,7 +69,7 @@ lib/
     theme/                  # brand tokens terracotta, Be Vietnam Pro
     layout/                 # Breakpoints (840px), AdaptiveLayout
     network/                # Dio client + Bearer token + chuẩn hoá lỗi httpx (tiếng Việt)
-    storage/                # TokenStorage, DeviceContext (store gắn với máy)
+    storage/                # TokenStorage, DeviceContext (store gắn với máy), CredentialStorage (ghi nhớ đăng nhập)
     utils/                  # formatVnd
     widgets/                # BrandLogo
   features/
