@@ -210,6 +210,8 @@ class Order {
     required this.paidAt,
     required this.updatedAt,
     required this.createdBy,
+    this.adjustments = const [],
+    this.adjustmentCount = 0,
   });
 
   final String id;
@@ -243,6 +245,12 @@ class Order {
   final DateTime? paidAt;
   final DateTime? updatedAt;
   final OrderUser? createdBy;
+
+  /// Corrections made after the bill was first rung up.
+  final List<OrderAdjustment> adjustments;
+
+  /// How many corrections; set on list responses too, where [adjustments] is empty.
+  final int adjustmentCount;
 
   bool get isPaid => paymentStatus == 'paid';
 
@@ -294,6 +302,10 @@ class Order {
         DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
     paidAt: DateTime.tryParse(json['paidAt'] as String? ?? ''),
     updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
+    adjustmentCount: (json['adjustmentCount'] as num?)?.toInt() ?? 0,
+    adjustments: (json['adjustments'] as List<dynamic>? ?? [])
+        .map((e) => OrderAdjustment.fromJson(e as Map<String, dynamic>))
+        .toList(),
     createdBy: json['createdBy'] == null
         ? null
         : OrderUser.fromJson(json['createdBy'] as Map<String, dynamic>),
@@ -349,4 +361,38 @@ class ShiftSummary {
       pendingApp: (json['pendingApp'] as num?)?.toInt() ?? 0,
     );
   }
+}
+
+/// One correction in an order's history (`order_adjustments` on the backend).
+class OrderAdjustment {
+  const OrderAdjustment({
+    required this.id,
+    required this.reason,
+    required this.oldTotal,
+    required this.newTotal,
+    required this.difference,
+    required this.byName,
+    required this.at,
+  });
+
+  final String id;
+  final String reason;
+  final int oldTotal;
+  final int newTotal;
+
+  /// Positive = collected more, negative = given back.
+  final int difference;
+  final String? byName;
+  final DateTime at;
+
+  factory OrderAdjustment.fromJson(Map<String, dynamic> json) =>
+      OrderAdjustment(
+        id: json['id'] as String,
+        reason: json['reason'] as String? ?? '',
+        oldTotal: (json['oldTotal'] as num?)?.toInt() ?? 0,
+        newTotal: (json['newTotal'] as num?)?.toInt() ?? 0,
+        difference: (json['difference'] as num?)?.toInt() ?? 0,
+        byName: json['byName'] as String?,
+        at: DateTime.parse(json['at'] as String),
+      );
 }

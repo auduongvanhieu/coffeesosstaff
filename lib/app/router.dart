@@ -8,6 +8,8 @@ import '../features/auth/presentation/login_page.dart';
 import '../features/auth/presentation/pin_page.dart';
 import '../features/pos/domain/order.dart';
 import '../features/pos/presentation/app_orders_page.dart';
+import '../features/pos/presentation/bill_detail_page.dart';
+import '../features/pos/presentation/bills_page.dart';
 import '../features/pos/presentation/cart_page.dart';
 import '../features/pos/presentation/order_page.dart';
 import '../features/pos/presentation/payment_page.dart';
@@ -21,11 +23,13 @@ abstract final class Routes {
   static const pin = '/pin';
   static const order = '/';
   static const tables = '/tables';
+  static const bills = '/bills';
   static const cart = '/cart';
   static const appOrders = '/app-orders';
   static const soldOut = '/sold-out';
   static const shift = '/shift';
   static String payment(String orderId) => '/payment/$orderId';
+  static String bill(String orderId) => '/bills/$orderId';
 }
 
 /// Rebuilds GoRouter's redirect when the auth state or device binding changes.
@@ -72,6 +76,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: Routes.order, builder: (_, _) => const OrderPage()),
           GoRoute(path: Routes.tables, builder: (_, _) => const TablesPage()),
+          GoRoute(path: Routes.bills, builder: (_, _) => const BillsPage()),
           GoRoute(
             path: Routes.appOrders,
             builder: (_, _) => const AppOrdersPage(),
@@ -83,6 +88,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.cart,
         builder: (_, _) => const _AuthGate(child: CartPage()),
+      ),
+      GoRoute(
+        path: '/bills/:orderId',
+        builder: (_, state) => _AuthGate(
+          child: BillDetailPage(orderId: state.pathParameters['orderId']!),
+        ),
       ),
       GoRoute(
         path: '/payment/:orderId',

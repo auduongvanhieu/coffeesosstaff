@@ -94,6 +94,46 @@ class OrderRepository {
     return FloorPlan.fromJson(res.data!);
   }
 
+  /// GET /pos/orders/history — the day's bills for the history screen.
+  Future<List<Order>> history({
+    String? date,
+    List<String>? statuses,
+    String? query,
+  }) async {
+    final res = await _api.dio.get<Map<String, dynamic>>(
+      '/pos/orders/history',
+      queryParameters: {
+        'date': ?date,
+        if (statuses != null && statuses.isNotEmpty)
+          'status': statuses.join(','),
+        if (query != null && query.isNotEmpty) 'q': query,
+      },
+      options: _opts,
+    );
+    return (res.data?['items'] as List<dynamic>? ?? [])
+        .map((e) => Order.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// POST /pos/orders/:id/adjust — fix a bill; returns the order and how much
+  /// to collect (positive) or hand back (negative).
+  Future<(Order, int)> adjust(
+    String id,
+    Map<String, dynamic> input,
+    String reason,
+  ) async {
+    final res = await _api.dio.post<Map<String, dynamic>>(
+      '/pos/orders/$id/adjust',
+      data: {...input, 'reason': reason},
+      options: _opts,
+    );
+    final data = res.data!;
+    return (
+      Order.fromJson(data['order'] as Map<String, dynamic>),
+      (data['difference'] as num?)?.toInt() ?? 0,
+    );
+  }
+
   Future<ShiftSummary> summary({String? date}) async {
     final res = await _api.dio.get<Map<String, dynamic>>(
       '/pos/orders/summary',
@@ -159,6 +199,40 @@ final orderByIdProvider = FutureProvider.family<Order, String>(
 final shiftSummaryProvider = FutureProvider<ShiftSummary>(
   (ref) => ref.watch(orderRepositoryProvider).summary(),
 );
+
+/// Filters for the bill history screen.
+class HistoryQuery {
+  const HistoryQuery({this.date, this.statuses = const [], this.query = ''});
+
+  final String? date;
+  final List<String> statuses;
+  final String query;
+
+  @override
+  bool operator ==(Object other) =>
+      other is HistoryQuery &&
+      other.date == date &&
+      other.query == query &&
+      other.statuses.join(',') == statuses.join(',');
+
+  @override
+  int get hashCode => Object.hash(date, query, statuses.join(','));
+}
+
+final orderHistoryProvider = FutureProvider.family<List<Order>, HistoryQuery>((
+  ref,
+  q,
+) {
+  ref.listen(realtimeEventsProvider, (_, next) {
+    final type = next.value?.type;
+    if (type == 'order.created' || type == 'order.updated') {
+      ref.invalidateSelf();
+    }
+  });
+  return ref
+      .watch(orderRepositoryProvider)
+      .history(date: q.date, statuses: q.statuses, query: q.query);
+});
 
 /// The floor plan, refetched whenever the hub says a table changed.
 final floorPlanProvider = FutureProvider<FloorPlan>((ref) {

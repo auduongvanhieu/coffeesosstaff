@@ -22,8 +22,9 @@ const _destinations = [
   _Destination('Order', Icons.local_cafe_rounded, Routes.order),
   _Destination('Bàn', Icons.table_restaurant_rounded, Routes.tables),
   _Destination('Đơn app', Icons.smartphone_rounded, Routes.appOrders),
+  _Destination('Hoá đơn', Icons.receipt_long_rounded, Routes.bills),
   _Destination('Hết món', Icons.block_rounded, Routes.soldOut),
-  _Destination('Kết ca', Icons.receipt_long_rounded, Routes.shift),
+  _Destination('Kết ca', Icons.logout_rounded, Routes.shift),
 ];
 
 /// Tablet: left rail like Figma "02 Order chính". Phone: bottom nav like "M2".

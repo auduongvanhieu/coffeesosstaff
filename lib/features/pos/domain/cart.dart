@@ -86,6 +86,7 @@ class CartState {
     this.promotion,
     this.note,
     this.orderId,
+    this.adjustingNumber,
   });
 
   final List<CartLine> lines;
@@ -103,6 +104,12 @@ class CartState {
 
   /// Set once the cart has been sent to the server (open order awaiting payment).
   final String? orderId;
+
+  /// Non-null while correcting an already-paid bill; holds its number so the
+  /// order screen can say which one is being edited.
+  final String? adjustingNumber;
+
+  bool get isAdjusting => adjustingNumber != null;
 
   bool get isEmpty => lines.isEmpty;
   int get itemCount => lines.fold(0, (s, l) => s + l.quantity);
@@ -126,6 +133,7 @@ class CartState {
     String? note,
     String? orderId,
     bool clearOrderId = false,
+    String? adjustingNumber,
   }) => CartState(
     lines: lines ?? this.lines,
     orderType: orderType ?? this.orderType,
@@ -135,6 +143,7 @@ class CartState {
     promotion: clearPromotion ? null : (promotion ?? this.promotion),
     note: note ?? this.note,
     orderId: clearOrderId ? null : (orderId ?? this.orderId),
+    adjustingNumber: adjustingNumber ?? this.adjustingNumber,
   );
 
   /// `CreateOrderInput` from the API contract.

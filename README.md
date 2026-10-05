@@ -39,6 +39,8 @@ flutter build ipa --release
 | `/cart` | — | M3 Giỏ hàng |
 | `/payment/:orderId` | 03 Thanh toán: Tiền mặt / VietQR / MoMo / ZaloPay, tiền thừa, mã VietQR thật | M4 |
 | `/app-orders` | 04 Đơn từ app: Chờ xác nhận / Đang pha / Sẵn sàng / Hôm nay, cập nhật realtime qua WebSocket | M5 |
+| `/bills` | Hoá đơn: toàn bộ đơn trong ngày, lọc theo trạng thái, tìm theo số đơn hoặc SĐT khách | như tablet |
+| `/bills/:orderId` | Chi tiết hoá đơn + lịch sử sửa đơn, nút **Sửa đơn này** | như tablet |
 | `/sold-out` | Hết món: bật tắt món ở cấp cửa hàng | như tablet |
 | `/shift` | Kết ca: avatar nhân viên (bấm để đổi ảnh), doanh thu, số đơn theo phương thức/nguồn, đăng xuất | như tablet |
 
@@ -46,6 +48,11 @@ Sơ đồ bàn: bấm bàn trống để mở đơn mới ngay. Bấm bàn đang
 bàn **chưa thanh toán** cho thêm món, thanh toán hoặc huỷ đơn; bàn **đã thanh toán**
 cho mở **đơn mới** (một bàn phục vụ nhiều lượt khách mỗi ngày), xem lại đơn cũ,
 hoặc trả bàn khi khách về. Mở đơn thứ hai trên bàn còn nợ tiền sẽ bị từ chối.
+
+Sửa đơn đã tính sai: vào **Hoá đơn**, mở đơn, bấm **Sửa đơn này**. Màn Order chuyển
+sang chế độ sửa (banner xanh, nút **Lưu sửa đơn**), sửa món xong nhập lý do; app báo
+cần **thu thêm** hay **trả lại khách** bao nhiêu. Mọi lần sửa đều lưu lại lý do và
+người sửa để đối chiếu khi kết ca.
 
 Luồng đơn: chọn món (sheet chọn size/đá/đường/topping, ghi chú) → gắn khách tích điểm theo SĐT →
 mã giảm giá → **Lưu đơn** (giữ đơn, chưa thu tiền) hoặc **Thanh toán** → xác nhận → đơn chuyển "Đang pha".
@@ -92,6 +99,8 @@ Toàn bộ API ở `CoffeeSOSBE/docs/pos-api.md`. Tóm tắt:
 | POST/PUT | `/pos/orders`, `/pos/orders/:id` | tạo / sửa đơn đang mở |
 | POST | `/pos/orders/:id/pay` | thanh toán |
 | GET/PATCH | `/pos/orders`, `/pos/orders/:id/status`, `/pos/orders/summary` | đơn từ app, kết ca |
+| GET | `/pos/orders/history?date=&status=&q=` | danh sách hoá đơn trong ngày |
+| POST | `/pos/orders/:id/adjust` | sửa đơn đã tính sai, trả về chênh lệch |
 | WS | `/ws?token=` | `order.created`, `order.updated`, `menu.item.availability`, `tables.changed` |
 
 ## Deploy

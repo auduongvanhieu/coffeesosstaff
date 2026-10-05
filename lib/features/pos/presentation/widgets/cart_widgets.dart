@@ -405,3 +405,42 @@ class SoftButton extends StatelessWidget {
     );
   }
 }
+
+/// Banner shown on the order screen while an already-paid bill is being fixed.
+class AdjustBanner extends StatelessWidget {
+  const AdjustBanner({super.key, required this.number});
+
+  final String number;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.success.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.success),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.edit_note_rounded,
+            size: 18,
+            color: AppColors.success,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Đang sửa đơn $number',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: AppColors.success,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -114,9 +114,10 @@ class CartController extends Notifier<CartState> {
   void clear() =>
       state = CartState(tableLabel: state.tableLabel, tableId: state.tableId);
 
-  /// Reopens an existing order for editing (tapping a busy table). Lines are
-  /// rebuilt from the live menu so prices and options stay in sync.
-  void loadFrom(Order order, StoreMenu menu) {
+  /// Reopens an existing order for editing. `adjusting` marks a bill that was
+  /// already paid: saving then goes through /adjust instead of creating a new
+  /// order. Lines are rebuilt from the live menu so options stay in sync.
+  void loadFrom(Order order, StoreMenu menu, {bool adjusting = false}) {
     final byId = {for (final i in menu.items) i.id: i};
     final lines = <CartLine>[];
     for (final l in order.items) {
@@ -159,7 +160,17 @@ class CartController extends Notifier<CartState> {
             ),
       note: order.note,
       orderId: order.id,
+      adjustingNumber: adjusting ? order.number : null,
     );
+  }
+
+  /// Saves a correction to an already-paid bill. Returns the updated order and
+  /// the difference to collect (positive) or hand back (negative).
+  Future<(Order, int)> saveAdjustment(String reason) async {
+    final res = await ref
+        .read(orderRepositoryProvider)
+        .adjust(state.orderId!, state.toInput(), reason);
+    return res;
   }
 
   /// Sends the cart to the server as an open order (or replaces the lines of

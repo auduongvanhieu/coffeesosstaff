@@ -554,3 +554,98 @@ class _PromoDialogState extends ConsumerState<_PromoDialog> {
     );
   }
 }
+
+/// Asks why a bill is being corrected; the reason goes into the audit log.
+Future<String?> showAdjustReasonDialog(BuildContext context) async {
+  final reason = TextEditingController();
+  final result = await showDialog<String>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Sửa đơn'),
+      content: SizedBox(
+        width: 380,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Ghi lại lý do để đối chiếu khi kết ca.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reason,
+              autofocus: true,
+              maxLength: 200,
+              decoration: const InputDecoration(
+                hintText: 'VD: Tính dư 1 ly cà phê',
+              ),
+              onSubmitted: (v) =>
+                  v.trim().length < 3 ? null : Navigator.of(ctx).pop(v.trim()),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Đóng'),
+        ),
+        FilledButton(
+          onPressed: () => reason.text.trim().length < 3
+              ? null
+              : Navigator.of(ctx).pop(reason.text.trim()),
+          child: const Text('Lưu'),
+        ),
+      ],
+    ),
+  );
+  reason.dispose();
+  return result;
+}
+
+/// Shows what the correction changed: collect more, give back, or no change.
+Future<void> showAdjustResultDialog(
+  BuildContext context,
+  Order order,
+  int difference,
+) async {
+  final (title, detail, color) = switch (difference) {
+    > 0 => ('Thu thêm của khách', formatVnd(difference), AppColors.primary),
+    < 0 => ('Trả lại khách', formatVnd(-difference), AppColors.success),
+    _ => ('Đã cập nhật đơn', 'Tổng tiền không đổi', AppColors.textPrimary),
+  };
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Đã sửa ${order.number}'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(color: AppColors.textSecondary)),
+          const SizedBox(height: 4),
+          Text(
+            detail,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Tổng mới: ${formatVnd(order.total)}',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Xong'),
+        ),
+      ],
+    ),
+  );
+}

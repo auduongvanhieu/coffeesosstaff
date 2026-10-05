@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/money.dart';
 import '../application/cart_controller.dart';
 import '../data/menu_repository.dart';
+import '../data/order_repository.dart';
 import '../domain/menu.dart';
 import 'widgets/cart_widgets.dart';
 import 'widgets/dialogs.dart';
@@ -175,6 +176,9 @@ class _OrderPanel extends ConsumerWidget {
     }
   }
 
+  Future<void> _saveAdjustment(BuildContext context, WidgetRef ref) =>
+      saveAdjustment(context, ref);
+
   Future<void> _checkout(BuildContext context, WidgetRef ref) async {
     final cart = ref.read(cartProvider.notifier);
     try {
@@ -196,6 +200,10 @@ class _OrderPanel extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (cart.isAdjusting) ...[
+            AdjustBanner(number: cart.adjustingNumber!),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               const Text(
@@ -237,27 +245,50 @@ class _OrderPanel extends ConsumerWidget {
           const Divider(height: 20),
           const CartTotals(),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: SoftButton(
-                  label: 'Lưu đơn',
-                  onPressed: cart.isEmpty ? null : () => _hold(context, ref),
+          if (cart.isAdjusting)
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: SoftButton(
+                    label: 'Huỷ sửa',
+                    onPressed: () => ref.read(cartProvider.notifier).clear(),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 3,
-                child: FilledButton(
-                  onPressed: cart.isEmpty
-                      ? null
-                      : () => _checkout(context, ref),
-                  child: const Text('Thanh toán'),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 3,
+                  child: FilledButton(
+                    onPressed: cart.isEmpty
+                        ? null
+                        : () => _saveAdjustment(context, ref),
+                    child: const Text('Lưu sửa đơn'),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: SoftButton(
+                    label: 'Lưu đơn',
+                    onPressed: cart.isEmpty ? null : () => _hold(context, ref),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 3,
+                  child: FilledButton(
+                    onPressed: cart.isEmpty
+                        ? null
+                        : () => _checkout(context, ref),
+                    child: const Text('Thanh toán'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -333,7 +364,9 @@ class _PhoneLayout extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () => context.push(Routes.cart),
+                  onTap: () => cart.isAdjusting
+                      ? saveAdjustment(context, ref)
+                      : context.push(Routes.cart),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -342,15 +375,17 @@ class _PhoneLayout extends ConsumerWidget {
                     child: Row(
                       children: [
                         Text(
-                          '${cart.itemCount} món · ${formatVnd(cart.total)}',
+                          cart.isAdjusting
+                              ? 'Sửa ${cart.adjustingNumber} · ${formatVnd(cart.total)}'
+                              : '${cart.itemCount} món · ${formatVnd(cart.total)}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                         const Spacer(),
-                        const Text(
-                          'Xem đơn →',
+                        Text(
+                          cart.isAdjusting ? 'Lưu sửa đơn →' : 'Xem đơn →',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -418,9 +453,11 @@ class _TablePill extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(cartProvider);
-    final label = cart.isTakeaway ? 'Mang đi' : cart.tableLabel;
+    // The toggle next to this pill already says "Mang đi", so a takeaway order
+    // shows what the pill is for instead of repeating it.
+    final label = cart.isTakeaway ? 'Chọn bàn' : cart.tableLabel;
     return Material(
-      color: AppColors.primary,
+      color: cart.isTakeaway ? AppColors.beige : AppColors.primary,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -432,14 +469,20 @@ class _TablePill extends ConsumerWidget {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: cart.isTakeaway
+                      ? AppColors.textSecondary
+                      : Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.arrow_drop_down, color: Colors.white, size: 18),
+              Icon(
+                Icons.arrow_drop_down,
+                color: cart.isTakeaway ? AppColors.textSecondary : Colors.white,
+                size: 18,
+              ),
             ],
           ),
         ),
@@ -680,5 +723,25 @@ class _ErrorView extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Saves a correction to an already-paid bill and tells staff how much to
+/// collect from, or give back to, the guest. Shared by both layouts.
+Future<void> saveAdjustment(BuildContext context, WidgetRef ref) async {
+  final reason = await showAdjustReasonDialog(context);
+  if (reason == null || !context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final (order, diff) = await ref
+        .read(cartProvider.notifier)
+        .saveAdjustment(reason);
+    ref.read(cartProvider.notifier).clear();
+    ref.invalidate(floorPlanProvider);
+    if (!context.mounted) return;
+    await showAdjustResultDialog(context, order, diff);
+    if (context.mounted) context.go(Routes.bills);
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(describeError(e))));
   }
 }
