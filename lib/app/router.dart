@@ -13,12 +13,14 @@ import '../features/pos/presentation/order_page.dart';
 import '../features/pos/presentation/payment_page.dart';
 import '../features/pos/presentation/pos_shell.dart';
 import '../features/pos/presentation/shift_page.dart';
+import '../features/pos/presentation/tables_page.dart';
 import '../features/pos/presentation/sold_out_page.dart';
 
 abstract final class Routes {
   static const login = '/login';
   static const pin = '/pin';
   static const order = '/';
+  static const tables = '/tables';
   static const cart = '/cart';
   static const appOrders = '/app-orders';
   static const soldOut = '/sold-out';
@@ -69,6 +71,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
         routes: [
           GoRoute(path: Routes.order, builder: (_, _) => const OrderPage()),
+          GoRoute(path: Routes.tables, builder: (_, _) => const TablesPage()),
           GoRoute(
             path: Routes.appOrders,
             builder: (_, _) => const AppOrdersPage(),

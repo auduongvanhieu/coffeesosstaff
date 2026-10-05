@@ -92,8 +92,12 @@ class CartController extends Notifier<CartState> {
     );
   }
 
-  void setTable(String label) =>
-      state = state.copyWith(tableLabel: label, orderType: 'dine_in');
+  void setTable(String label, {String? id}) => state = state.copyWith(
+    tableLabel: label,
+    tableId: id,
+    clearTableId: id == null,
+    orderType: 'dine_in',
+  );
 
   void setOrderType(String type) => state = state.copyWith(orderType: type);
 
@@ -107,7 +111,56 @@ class CartController extends Notifier<CartState> {
 
   void setNote(String? note) => state = state.copyWith(note: note);
 
-  void clear() => state = CartState(tableLabel: state.tableLabel);
+  void clear() =>
+      state = CartState(tableLabel: state.tableLabel, tableId: state.tableId);
+
+  /// Reopens an existing order for editing (tapping a busy table). Lines are
+  /// rebuilt from the live menu so prices and options stay in sync.
+  void loadFrom(Order order, StoreMenu menu) {
+    final byId = {for (final i in menu.items) i.id: i};
+    final lines = <CartLine>[];
+    for (final l in order.items) {
+      final item = byId[l.itemId];
+      if (item == null) continue; // item left the menu; drop the line
+      lines.add(
+        CartLine(
+          uid: 'l${++_seq}',
+          item: item,
+          quantity: l.quantity,
+          choices: [
+            for (final c in l.choices)
+              SelectedChoice(
+                group: c.group,
+                groupName: c.groupName,
+                code: c.code,
+                name: c.name,
+                priceDelta: c.priceDelta,
+                isDefault: false,
+              ),
+          ],
+          note: l.note,
+        ),
+      );
+    }
+    state = CartState(
+      lines: lines,
+      orderType: order.orderType == 'takeaway' ? 'takeaway' : 'dine_in',
+      tableLabel: order.tableLabel ?? state.tableLabel,
+      tableId: order.tableId,
+      customer: order.customer,
+      promotion: order.promotionCode == null
+          ? null
+          : Promotion(
+              code: order.promotionCode!,
+              name: order.promotionCode!,
+              type: 'fixed',
+              value: order.discount,
+              minSubtotal: 0,
+            ),
+      note: order.note,
+      orderId: order.id,
+    );
+  }
 
   /// Sends the cart to the server as an open order (or replaces the lines of
   /// the order already created for this cart). Returns the priced order.

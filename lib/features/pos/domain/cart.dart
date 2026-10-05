@@ -81,6 +81,7 @@ class CartState {
     this.lines = const [],
     this.orderType = 'dine_in',
     this.tableLabel = 'Bàn 05',
+    this.tableId,
     this.customer,
     this.promotion,
     this.note,
@@ -92,6 +93,10 @@ class CartState {
   /// "dine_in" | "takeaway"
   final String orderType;
   final String tableLabel;
+
+  /// Set when the table came from the floor plan; the server then uses the
+  /// table's own name for the ticket.
+  final String? tableId;
   final Customer? customer;
   final Promotion? promotion;
   final String? note;
@@ -112,6 +117,8 @@ class CartState {
     List<CartLine>? lines,
     String? orderType,
     String? tableLabel,
+    String? tableId,
+    bool clearTableId = false,
     Customer? customer,
     bool clearCustomer = false,
     Promotion? promotion,
@@ -123,6 +130,7 @@ class CartState {
     lines: lines ?? this.lines,
     orderType: orderType ?? this.orderType,
     tableLabel: tableLabel ?? this.tableLabel,
+    tableId: clearTableId ? null : (tableId ?? this.tableId),
     customer: clearCustomer ? null : (customer ?? this.customer),
     promotion: clearPromotion ? null : (promotion ?? this.promotion),
     note: note ?? this.note,
@@ -133,6 +141,7 @@ class CartState {
   Map<String, dynamic> toInput() => {
     'orderType': orderType,
     if (!isTakeaway) 'tableLabel': tableLabel,
+    if (!isTakeaway && tableId != null) 'tableId': tableId,
     if (customer != null) 'customerId': customer!.id,
     if (promotion != null) 'promotionCode': promotion!.code,
     if (note != null && note!.isNotEmpty) 'note': note,

@@ -192,6 +192,7 @@ class Order {
     required this.source,
     required this.orderType,
     required this.tableLabel,
+    this.tableId,
     required this.status,
     required this.paymentStatus,
     required this.paymentMethod,
@@ -220,6 +221,7 @@ class Order {
   /// "dine_in" | "takeaway" | "pickup"
   final String orderType;
   final String? tableLabel;
+  final String? tableId;
 
   /// open | pending | preparing | ready | completed | rejected | cancelled
   final String status;
@@ -270,6 +272,7 @@ class Order {
     source: json['source'] as String? ?? 'pos',
     orderType: json['orderType'] as String? ?? 'dine_in',
     tableLabel: json['tableLabel'] as String?,
+    tableId: json['tableId'] as String?,
     status: json['status'] as String? ?? 'open',
     paymentStatus: json['paymentStatus'] as String? ?? 'unpaid',
     paymentMethod: json['paymentMethod'] as String?,

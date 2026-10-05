@@ -20,6 +20,7 @@ class _Destination {
 
 const _destinations = [
   _Destination('Order', Icons.local_cafe_rounded, Routes.order),
+  _Destination('Bàn', Icons.table_restaurant_rounded, Routes.tables),
   _Destination('Đơn app', Icons.smartphone_rounded, Routes.appOrders),
   _Destination('Hết món', Icons.block_rounded, Routes.soldOut),
   _Destination('Kết ca', Icons.receipt_long_rounded, Routes.shift),
@@ -84,7 +85,7 @@ class _Rail extends ConsumerWidget {
             _RailItem(
               destination: _destinations[i],
               active: i == index,
-              badge: i == 1 ? pending : 0,
+              badge: _destinations[i].route == Routes.appOrders ? pending : 0,
             ),
             const SizedBox(height: 14),
           ],
@@ -211,7 +212,8 @@ class _BottomNav extends StatelessWidget {
                                 : AppColors.textSecondary,
                           ),
                         ),
-                        if (i == 1 && pending > 0)
+                        if (_destinations[i].route == Routes.appOrders &&
+                            pending > 0)
                           Positioned(
                             top: -6,
                             right: -8,

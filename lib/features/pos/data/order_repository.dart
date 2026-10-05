@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../auth/application/auth_controller.dart';
 import '../domain/order.dart';
+import '../domain/table.dart';
 import 'menu_repository.dart';
+import 'realtime.dart';
 
 class OrderRepository {
   OrderRepository(this._api, this._storeId);
@@ -83,6 +85,15 @@ class OrderRepository {
     return Order.fromJson(res.data!);
   }
 
+  /// GET /pos/tables — the floor plan with the order on each table.
+  Future<FloorPlan> tables() async {
+    final res = await _api.dio.get<Map<String, dynamic>>(
+      '/pos/tables',
+      options: _opts,
+    );
+    return FloorPlan.fromJson(res.data!);
+  }
+
   Future<ShiftSummary> summary({String? date}) async {
     final res = await _api.dio.get<Map<String, dynamic>>(
       '/pos/orders/summary',
@@ -148,3 +159,16 @@ final orderByIdProvider = FutureProvider.family<Order, String>(
 final shiftSummaryProvider = FutureProvider<ShiftSummary>(
   (ref) => ref.watch(orderRepositoryProvider).summary(),
 );
+
+/// The floor plan, refetched whenever the hub says a table changed.
+final floorPlanProvider = FutureProvider<FloorPlan>((ref) {
+  ref.listen(realtimeEventsProvider, (_, next) {
+    final type = next.value?.type;
+    if (type == 'tables.changed' ||
+        type == 'order.created' ||
+        type == 'order.updated') {
+      ref.invalidateSelf();
+    }
+  });
+  return ref.watch(orderRepositoryProvider).tables();
+});

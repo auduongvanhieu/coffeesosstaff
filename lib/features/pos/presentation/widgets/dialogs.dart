@@ -7,11 +7,29 @@ import '../../../../core/utils/money.dart';
 import '../../application/cart_controller.dart';
 import '../../data/order_repository.dart';
 import '../../domain/order.dart';
+import '../../domain/table.dart';
 
-/// Pick a table label for the current order (Bàn 01 … Bàn 20 or free text).
+/// Pick the table for the current order. Shows the store's real floor plan
+/// (with who is busy) and falls back to free text for one-off spots.
 Future<void> showTablePicker(BuildContext context, WidgetRef ref) async {
   final current = ref.read(cartProvider).tableLabel;
-  final result = await showModalBottomSheet<String>(
+  final plan = await ref
+      .read(floorPlanProvider.future)
+      .catchError(
+        (_) => const FloorPlan(
+          tables: [],
+          zones: [],
+          total: 0,
+          free: 0,
+          serving: 0,
+          paid: 0,
+          openRevenue: 0,
+          takeawayOpen: 0,
+        ),
+      );
+  if (!context.mounted) return;
+
+  final result = await showModalBottomSheet<(String, String?)>(
     context: context,
     constraints: const BoxConstraints(maxWidth: 560),
     builder: (ctx) {
@@ -27,20 +45,35 @@ Future<void> showTablePicker(BuildContext context, WidgetRef ref) async {
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (var i = 1; i <= 20; i++)
-                  _Pill(
-                    label: 'Bàn ${i.toString().padLeft(2, '0')}',
-                    selected: current == 'Bàn ${i.toString().padLeft(2, '0')}',
-                    onTap: () =>
-                        Navigator.of(ctx)
-                            .pop('Bàn ${i.toString().padLeft(2, '0')}'),
-                  ),
-              ],
-            ),
+            if (plan.tables.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final t in plan.tables)
+                    _Pill(
+                      label: t.isFree ? t.name : '${t.name} · ${t.statusLabel}',
+                      selected: current == t.name,
+                      muted: !t.isFree,
+                      onTap: () => Navigator.of(ctx).pop((t.name, t.id)),
+                    ),
+                ],
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (var i = 1; i <= 20; i++)
+                    _Pill(
+                      label: 'Bàn ${i.toString().padLeft(2, '0')}',
+                      selected:
+                          current == 'Bàn ${i.toString().padLeft(2, '0')}',
+                      onTap: () => Navigator.of(ctx)
+                          .pop(('Bàn ${i.toString().padLeft(2, '0')}', null)),
+                    ),
+                ],
+              ),
             const SizedBox(height: 14),
             Row(
               children: [
@@ -52,18 +85,19 @@ Future<void> showTablePicker(BuildContext context, WidgetRef ref) async {
                     ),
                     onSubmitted: (v) => v.trim().isEmpty
                         ? null
-                        : Navigator.of(ctx).pop(v.trim()),
+                        : Navigator.of(ctx).pop((v.trim(), null)),
                   ),
                 ),
                 const SizedBox(width: 8),
-                SizedBox(
-                  width: 90,
-                  child: FilledButton(
-                    onPressed: () => custom.text.trim().isEmpty
-                        ? null
-                        : Navigator.of(ctx).pop(custom.text.trim()),
-                    child: const Text('Chọn'),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
+                  onPressed: () => custom.text.trim().isEmpty
+                      ? null
+                      : Navigator.of(ctx).pop((custom.text.trim(), null)),
+                  child: const Text('Chọn'),
                 ),
               ],
             ),
@@ -72,7 +106,9 @@ Future<void> showTablePicker(BuildContext context, WidgetRef ref) async {
       );
     },
   );
-  if (result != null) ref.read(cartProvider.notifier).setTable(result);
+  if (result != null) {
+    ref.read(cartProvider.notifier).setTable(result.$1, id: result.$2);
+  }
 }
 
 class _Pill extends StatelessWidget {
@@ -80,11 +116,15 @@ class _Pill extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.muted = false,
   });
 
   final String label;
   final bool selected;
   final VoidCallback onTap;
+
+  /// Table already has guests: still selectable, just dimmed.
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +141,11 @@ class _Pill extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,
-              color: selected ? Colors.white : AppColors.textPrimary,
+              color: selected
+                  ? Colors.white
+                  : muted
+                  ? AppColors.textSecondary
+                  : AppColors.textPrimary,
             ),
           ),
         ),

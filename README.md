@@ -35,11 +35,15 @@ flutter build ipa --release
 | `/login` | Đăng nhập email lần đầu để gắn máy với cửa hàng | như tablet |
 | `/pin` | 01 Đăng nhập: bàn phím PIN 4 số (demo `1234`) | M1 |
 | `/` | 02 Order chính: rail trái, tìm món, Bàn/Mang đi, danh mục, lưới 4 cột, panel Đơn hàng | M2: lưới 2 cột + thanh "n món · tổng · Xem đơn" |
+| `/tables` | Sơ đồ bàn: bàn trống / đang phục vụ / đã thanh toán theo khu, số bàn có khách, tiền chưa thu; cập nhật realtime | như tablet, lưới 3 cột |
 | `/cart` | — | M3 Giỏ hàng |
 | `/payment/:orderId` | 03 Thanh toán: Tiền mặt / VietQR / MoMo / ZaloPay, tiền thừa, mã VietQR thật | M4 |
 | `/app-orders` | 04 Đơn từ app: Chờ xác nhận / Đang pha / Sẵn sàng / Hôm nay, cập nhật realtime qua WebSocket | M5 |
 | `/sold-out` | Hết món: bật tắt món ở cấp cửa hàng | như tablet |
 | `/shift` | Kết ca: avatar nhân viên (bấm để đổi ảnh), doanh thu, số đơn theo phương thức/nguồn, đăng xuất | như tablet |
+
+Sơ đồ bàn: bấm bàn trống để mở đơn mới cho bàn đó; bấm bàn đang phục vụ để nạp lại
+đơn vào giỏ và thêm món; bàn đã thanh toán mở thẳng màn thanh toán của đơn.
 
 Luồng đơn: chọn món (sheet chọn size/đá/đường/topping, ghi chú) → gắn khách tích điểm theo SĐT →
 mã giảm giá → **Lưu đơn** (giữ đơn, chưa thu tiền) hoặc **Thanh toán** → xác nhận → đơn chuyển "Đang pha".
@@ -79,13 +83,14 @@ Toàn bộ API ở `CoffeeSOSBE/docs/pos-api.md`. Tóm tắt:
 | POST | `/auth/login`, `/auth/pin-login` | `{email, password}` / `{storeId, pin}` → `{accessToken, expiresAt, user}` |
 | GET | `/auth/me` | khôi phục session, kèm `brandName`, `storeName` |
 | GET | `/pos/menu`, `/pos/store` | menu + thông tin ngân hàng VietQR |
+| GET | `/pos/tables` | sơ đồ bàn + đơn đang ngồi ở mỗi bàn |
 | PATCH | `/pos/menu/items/:id/availability` | hết món ở cấp cửa hàng |
 | GET/POST | `/pos/customers/lookup?phone=`, `/pos/customers` | khách tích điểm |
 | GET | `/pos/promotions/:code` | mã giảm giá |
 | POST/PUT | `/pos/orders`, `/pos/orders/:id` | tạo / sửa đơn đang mở |
 | POST | `/pos/orders/:id/pay` | thanh toán |
 | GET/PATCH | `/pos/orders`, `/pos/orders/:id/status`, `/pos/orders/summary` | đơn từ app, kết ca |
-| WS | `/ws?token=` | `order.created`, `order.updated`, `menu.item.availability` |
+| WS | `/ws?token=` | `order.created`, `order.updated`, `menu.item.availability`, `tables.changed` |
 
 ## Deploy
 
