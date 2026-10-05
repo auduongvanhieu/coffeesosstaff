@@ -92,6 +92,7 @@ const _codeMessages = <String, String>{
   'invalid_transition': 'Trạng thái đơn không cho phép thao tác này.',
   'already_paid': 'Đơn này đã được thanh toán.',
   'not_open': 'Đơn đã chốt, không sửa được.',
+  'table_busy': 'Bàn đang có đơn chưa thanh toán. Mở đơn đó để thêm món.',
   'store_required': 'Tài khoản chưa gắn với cửa hàng nào.',
   'unauthorized': 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.',
   'forbidden': 'Bạn không có quyền thực hiện thao tác này.',

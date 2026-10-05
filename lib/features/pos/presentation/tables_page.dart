@@ -17,32 +17,79 @@ import '../domain/table.dart';
 class TablesPage extends ConsumerWidget {
   const TablesPage({super.key});
 
-  Future<void> _openTable(
+  Future<void> _tapTable(
     BuildContext context,
     WidgetRef ref,
     StoreTable table,
   ) async {
-    final cart = ref.read(cartProvider.notifier);
     if (table.isFree) {
-      cart.clear();
-      cart.setTable(table.name, id: table.id);
-      context.go(Routes.order);
+      _startOrder(context, ref, table);
       return;
     }
-    // Busy: pull the order back into the cart so staff can add more items.
+    // A table serves several rounds a day, so a paid table must be able to
+    // start a fresh bill. Ask instead of guessing which one staff meant.
+    final action = await showModalBottomSheet<_TableAction>(
+      context: context,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (ctx) => _TableSheet(table: table),
+    );
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case _TableAction.newOrder:
+        _startOrder(context, ref, table);
+      case _TableAction.openOrder:
+        await _loadOrder(context, ref, table);
+      case _TableAction.pay:
+        await _loadOrder(context, ref, table, goToPayment: true);
+      case _TableAction.release:
+        await _setStatus(context, ref, table, 'completed', 'Đã trả bàn');
+      case _TableAction.cancel:
+        await _setStatus(context, ref, table, 'cancelled', 'Đã huỷ đơn');
+    }
+  }
+
+  void _startOrder(BuildContext context, WidgetRef ref, StoreTable table) {
+    final cart = ref.read(cartProvider.notifier);
+    cart.clear();
+    cart.setTable(table.name, id: table.id);
+    context.go(Routes.order);
+  }
+
+  /// Pulls the table's order back into the cart so staff can add to it.
+  Future<void> _loadOrder(
+    BuildContext context,
+    WidgetRef ref,
+    StoreTable table, {
+    bool goToPayment = false,
+  }) async {
     final messenger = ScaffoldMessenger.of(context);
     try {
       final order = await ref.read(orderRepositoryProvider).get(table.orderId!);
-      final menu = await ref.read(storeMenuProvider.future);
-      if (order.status != 'open') {
-        // Already paid: nothing to edit, show the order instead.
-        if (context.mounted) {
-          context.push(Routes.payment(order.id), extra: order);
-        }
+      if (!context.mounted) return;
+      if (goToPayment || order.status != 'open') {
+        context.push(Routes.payment(order.id), extra: order);
         return;
       }
-      cart.loadFrom(order, menu);
+      final menu = await ref.read(storeMenuProvider.future);
+      ref.read(cartProvider.notifier).loadFrom(order, menu);
       if (context.mounted) context.go(Routes.order);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(describeError(e))));
+    }
+  }
+
+  Future<void> _setStatus(
+    BuildContext context,
+    WidgetRef ref,
+    StoreTable table,
+    String status,
+    String done,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(orderRepositoryProvider).setStatus(table.orderId!, status);
+      ref.invalidate(floorPlanProvider);
+      messenger.showSnackBar(SnackBar(content: Text('$done ${table.name}')));
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(describeError(e))));
     }
@@ -112,7 +159,7 @@ class TablesPage extends ConsumerWidget {
                                   : p.inZone(zone),
                               maxWidth: tablet ? 230 : 190,
                               aspect: tablet ? 1.45 : 1.1,
-                              onTap: (t) => _openTable(context, ref, t),
+                              onTap: (t) => _tapTable(context, ref, t),
                             ),
                             const SizedBox(height: 18),
                           ],
@@ -369,6 +416,158 @@ class _Error extends StatelessWidget {
           const SizedBox(height: 12),
           OutlinedButton(onPressed: onRetry, child: const Text('Thử lại')),
         ],
+      ),
+    );
+  }
+}
+
+enum _TableAction { newOrder, openOrder, pay, release, cancel }
+
+/// Actions for a busy table. A paid table can start the next round; an unpaid
+/// one can be added to, paid or cancelled.
+class _TableSheet extends StatelessWidget {
+  const _TableSheet({required this.table});
+
+  final StoreTable table;
+
+  @override
+  Widget build(BuildContext context) {
+    final paid = table.isPaid;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Text(
+                  table.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '${table.orderNumber ?? ''} · ${table.statusLabel}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: paid ? AppColors.success : AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  formatVnd(table.total ?? 0),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              '${table.itemCount ?? 0} món · ${table.openedLabel}',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (paid) ...[
+              _SheetButton(
+                label: 'Đơn mới cho ${table.name}',
+                icon: Icons.add_rounded,
+                primary: true,
+                onTap: () => Navigator.of(context).pop(_TableAction.newOrder),
+              ),
+              const SizedBox(height: 10),
+              _SheetButton(
+                label: 'Xem đơn ${table.orderNumber ?? ''}',
+                icon: Icons.receipt_long_rounded,
+                onTap: () => Navigator.of(context).pop(_TableAction.openOrder),
+              ),
+              const SizedBox(height: 10),
+              _SheetButton(
+                label: 'Trả bàn (khách đã về)',
+                icon: Icons.check_circle_outline_rounded,
+                onTap: () => Navigator.of(context).pop(_TableAction.release),
+              ),
+            ] else ...[
+              _SheetButton(
+                label: 'Thêm món vào đơn',
+                icon: Icons.add_rounded,
+                primary: true,
+                onTap: () => Navigator.of(context).pop(_TableAction.openOrder),
+              ),
+              const SizedBox(height: 10),
+              _SheetButton(
+                label: 'Thanh toán · ${formatVnd(table.total ?? 0)}',
+                icon: Icons.payments_outlined,
+                onTap: () => Navigator.of(context).pop(_TableAction.pay),
+              ),
+              const SizedBox(height: 10),
+              _SheetButton(
+                label: 'Huỷ đơn',
+                icon: Icons.close_rounded,
+                danger: true,
+                onTap: () => Navigator.of(context).pop(_TableAction.cancel),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetButton extends StatelessWidget {
+  const _SheetButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.primary = false,
+    this.danger = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool primary;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = primary
+        ? Colors.white
+        : danger
+        ? AppColors.danger
+        : AppColors.textPrimary;
+    return Material(
+      color: primary ? AppColors.primary : AppColors.beige,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: fg),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: fg,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

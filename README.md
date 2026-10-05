@@ -42,8 +42,10 @@ flutter build ipa --release
 | `/sold-out` | Hết món: bật tắt món ở cấp cửa hàng | như tablet |
 | `/shift` | Kết ca: avatar nhân viên (bấm để đổi ảnh), doanh thu, số đơn theo phương thức/nguồn, đăng xuất | như tablet |
 
-Sơ đồ bàn: bấm bàn trống để mở đơn mới cho bàn đó; bấm bàn đang phục vụ để nạp lại
-đơn vào giỏ và thêm món; bàn đã thanh toán mở thẳng màn thanh toán của đơn.
+Sơ đồ bàn: bấm bàn trống để mở đơn mới ngay. Bấm bàn đang bận hiện bảng chọn:
+bàn **chưa thanh toán** cho thêm món, thanh toán hoặc huỷ đơn; bàn **đã thanh toán**
+cho mở **đơn mới** (một bàn phục vụ nhiều lượt khách mỗi ngày), xem lại đơn cũ,
+hoặc trả bàn khi khách về. Mở đơn thứ hai trên bàn còn nợ tiền sẽ bị từ chối.
 
 Luồng đơn: chọn món (sheet chọn size/đá/đường/topping, ghi chú) → gắn khách tích điểm theo SĐT →
 mã giảm giá → **Lưu đơn** (giữ đơn, chưa thu tiền) hoặc **Thanh toán** → xác nhận → đơn chuyển "Đang pha".

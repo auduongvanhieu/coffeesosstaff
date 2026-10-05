@@ -53,6 +53,9 @@ class StoreTable {
     return rest == 0 ? '$h giờ' : '$h giờ $rest phút';
   }
 
+  /// "mở 49 phút" / "vừa mở" — reads naturally either way.
+  String get openedLabel => (minutes ?? 0) < 1 ? 'vừa mở' : 'mở $elapsedLabel';
+
   factory StoreTable.fromJson(Map<String, dynamic> json) => StoreTable(
     id: json['id'] as String,
     name: json['name'] as String,
